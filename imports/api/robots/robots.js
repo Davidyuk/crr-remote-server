@@ -8,7 +8,7 @@ Robots.schema = new SimpleSchema({
   socketId: { type: String, optional: true, defaultValue: '' },
   console: { type: Array, defaultValue: [] },
   'console.$': { type: String, trim: false },
-  videoStreamName: String,
+  videoStreamName: { type: String, optional: true },
   // 'console.$': { type: Object, blackbox: true },
   apiAccessToken: String,
 });
@@ -19,4 +19,5 @@ Robots.publicFields = {
   name: 1,
   socketId: 1,
   console: 1,
+  videoStreamName: 1,
 };

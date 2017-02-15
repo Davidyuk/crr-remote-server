@@ -18,11 +18,13 @@ const Robot = ({ robot }) => {
           {robot.name} ({robot.socketId ? 'online' : 'offline'})
         </div>
         <div style={{ flexGrow: 1, display: 'flex' }}>
-          <video
-            src="http://witcoin.ru:8090/test1.webm"
-            type='video/webm; codecs="vp8, vorbis"'
-            controls autoPlay style={{ margin: 'auto' }}
-          />
+          {robot.videoStreamName && (
+            <video
+              src={`http://witcoin.ru:8090/test${robot.videoStreamName}.webm`}
+              type='video/webm; codecs="vp8, vorbis"'
+              controls autoPlay style={{ margin: 'auto' }}
+            />
+          )}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', flexGrow: 1 }}>
@@ -69,6 +71,7 @@ Robot.propTypes = {
   robot: PropTypes.shape({
     name: PropTypes.string.isRequired,
     socketId: PropTypes.string.isRequired,
+    videoStreamName: PropTypes.string,
     // console: PropTypes.string.isRequired,
   }).isRequired,
 };
@@ -84,6 +87,7 @@ export default createContainer(({ params: { robotId } }) => {
     robot.console = robot.console.join('');
     // console.log(robot.console);
   }
+  console.log(robot);
   return {
     robot,
     loading,

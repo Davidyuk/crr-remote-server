@@ -1,3 +1,5 @@
+/* global process */
+
 import { Meteor } from 'meteor/meteor';
 import Server from 'socket.io';
 import { spawn } from 'child_process';
@@ -23,19 +25,6 @@ Meteor.startup(() => {
       const s = Robots.update({ apiAccessToken }, { $set: { socketId, console: [] } });
       if (s) {
         console.log('Logged in');
-        // 'C:\\TEMP\\robot.mp4' 'http://witcoin.ru:8090/feed1.ffm'
-        ffmpegProcess = spawn('ffmpeg', ['-i', 'pipe:0', 'http://witcoin.ru:8090/feed1.ffm'], {
-          shell: true,
-          env: process.env,
-          stdio: ['pipe', 'pipe', process.stderr],
-        });
-        ffmpegProcess.stdout.setEncoding('utf8');
-        ffmpegProcess.stdout.on('data', (data) => {
-          console.log(`ffmpegProcess: ${String(data)}`);
-        });
-        ffmpegProcess.on('close', (code) => {
-          console.log('process exit code ' + code);
-        });
       }
     });
 
@@ -47,14 +36,46 @@ Meteor.startup(() => {
       Robots.update({ socketId }, { $push: { console: data } });
     });
 
-    socket.on('video', (data) => {
-      console.log('video', data);
-      ffmpegProcess.stdin.write(data);
+    const spawnFfmpegProcess = () => {
+      const r = spawn('ffmpeg', ['-i', 'pipe:0', 'http://witcoin.ru:8090/feed1.ffm'], {
+        shell: true,
+        env: process.env,
+        stdio: ['pipe', 'pipe', process.stderr],
+      });
+      r.stdout.on('data', (data) => {
+        console.log(`ffmpegProcess: ${String(data)}`);
+      });
+      r.on('close', (code) => {
+        console.log(`ffmpegProcess exit code ${code}`);
+      });
+      return r;
+    };
+
+    socket.on('video.init', () => {
+      Robots.update({ socketId }, { $set: { videoStreamName: '1' } });
+      ffmpegProcess = spawnFfmpegProcess();
+    });
+
+    socket.on('video.data', (data) => {
+      try {
+        ffmpegProcess.stdin.write(data);
+      } catch (e) {
+        console.error(e);
+        console.log('Try to run ffmpeg again');
+        ffmpegProcess = spawnFfmpegProcess();
+        ffmpegProcess.stdin.write(data);
+      }
+    });
+
+    socket.on('video.end', () => {
+      Robots.update({ socketId }, { $unset: { videoStreamName: 1 } });
+      if (ffmpegProcess) {
+        ffmpegProcess.stdin.end();
+      }
     });
 
     socket.on('disconnect', () => {
-      Robots.update({ socketId }, { $set: { socketId: '' } });
-      ffmpegProcess.stdin.end();
+      Robots.update({ socketId }, { $unset: { socketId: 1, videoStreamName: 1 } });
     });
   }));
   io.listen(4000);
